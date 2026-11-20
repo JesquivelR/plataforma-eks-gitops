@@ -4,7 +4,7 @@ Cada carpeta de este directorio es un módulo reutilizable que se consume desde 
 
 | Módulo | Contenido | Estado |
 |--------|-----------|--------|
-| `vpc` | VPC con subredes públicas y privadas por zona de disponibilidad | Se agrega en el siguiente paso |
+| `vpc` | VPC con subredes públicas y privadas por zona de disponibilidad | Disponible |
 | `eks` | Clúster EKS, node group del sistema y cifrado de secretos con KMS | Se agrega en un paso posterior |
 
 Convenciones: cada módulo tiene `main.tf`, `variables.tf`, `outputs.tf` y `versions.tf`, y no declara el bloque `provider`.

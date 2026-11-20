@@ -19,3 +19,9 @@ variable "etiquetas" {
     gestion  = "terraform"
   }
 }
+
+variable "cidr_vpc" {
+  description = "Bloque CIDR de la VPC del entorno."
+  type        = string
+  default     = "10.0.0.0/16"
+}
