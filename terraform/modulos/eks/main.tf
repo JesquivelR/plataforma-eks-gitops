@@ -4,6 +4,7 @@ data "aws_caller_identity" "actual" {}
 
 # Llave de KMS para cifrar los Secrets de Kubernetes en etcd.
 resource "aws_kms_key" "secretos" {
+  #checkov:skip=CKV2_AWS_64: se usa la política por defecto de la llave, que delega el acceso en IAM de la cuenta; una política propia se evalúa cuando haya más de un administrador
   description             = "Cifrado de secretos de Kubernetes del clúster ${var.nombre_cluster}"
   enable_key_rotation     = true
   deletion_window_in_days = 7
@@ -17,6 +18,7 @@ resource "aws_kms_alias" "secretos" {
 }
 
 resource "aws_cloudwatch_log_group" "cluster" {
+  #checkov:skip=CKV_AWS_158: los registros del plano de control de dev usan el cifrado por defecto de CloudWatch; la llave propia encarece el laboratorio sin cambiar el diseño
   name              = "/aws/eks/${var.nombre_cluster}/cluster"
   retention_in_days = var.retencion_logs_dias
 

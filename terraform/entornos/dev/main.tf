@@ -8,6 +8,7 @@ provider "aws" {
 
 
 data "aws_availability_zones" "disponibles" {
+  #checkov:skip=CKV_AWS_394: el entorno toma solo las tres primeras zonas con slice, así que el resultado no crece cuando AWS agrega una zona
   state = "available"
 }
 
