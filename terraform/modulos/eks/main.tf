@@ -1,7 +1,5 @@
 data "aws_partition" "actual" {}
 
-data "aws_caller_identity" "actual" {}
-
 # Llave de KMS para cifrar los Secrets de Kubernetes en etcd.
 resource "aws_kms_key" "secretos" {
   #checkov:skip=CKV2_AWS_64: se usa la política por defecto de la llave, que delega el acceso en IAM de la cuenta; una política propia se evalúa cuando haya más de un administrador
