@@ -1,0 +1,24 @@
+# Valores del chart oci://public.ecr.aws/karpenter/karpenter para el entorno dev.
+# Reemplaza los marcadores con las salidas de Terraform (terraform output).
+#   <ARN_ROL_KARPENTER>   -> rol_karpenter_arn
+#   <NOMBRE_COLA>         -> cola de interrupciones
+settings:
+  clusterName: eks-gitops-dev-cluster
+  interruptionQueue: <NOMBRE_COLA>
+serviceAccount:
+  annotations:
+    eks.amazonaws.com/role-arn: <ARN_ROL_KARPENTER>
+replicas: 2
+controller:
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      memory: 512Mi
+# El controlador corre en el node group del sistema, no en nodos que él mismo crea.
+nodeSelector:
+  rol: sistema
+tolerations:
+  - key: CriticalAddonsOnly
+    operator: Exists
