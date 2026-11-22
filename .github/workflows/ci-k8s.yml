@@ -1,0 +1,31 @@
+name: CI de manifiestos
+
+on:
+  pull_request:
+    paths:
+      - "k8s/**"
+      - ".yamllint.yml"
+      - ".github/workflows/ci-k8s.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "k8s/**"
+      - ".yamllint.yml"
+      - ".github/workflows/ci-k8s.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  yamllint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Descargar el repositorio
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Instalar yamllint
+        run: pip install yamllint==1.35.1
+
+      - name: Revisar los manifiestos y los values
+        run: yamllint --strict -c .yamllint.yml k8s
