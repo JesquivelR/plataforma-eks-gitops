@@ -1,0 +1,19 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: app-demo
+  namespace: demo
+spec:
+  ingressClassName: nginx
+  rules:
+    # Dominio de ejemplo: reemplazalo por uno propio o prueba con el encabezado Host.
+    - host: demo.ejemplo.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: app-demo
+                port:
+                  name: http

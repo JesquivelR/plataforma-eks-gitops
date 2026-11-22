@@ -1,0 +1,38 @@
+apiVersion: karpenter.sh/v1
+kind: NodePool
+metadata:
+  name: computo
+spec:
+  template:
+    metadata:
+      labels:
+        carga: computo
+    spec:
+      nodeClassRef:
+        group: karpenter.k8s.aws
+        kind: EC2NodeClass
+        name: predeterminada
+      # Los pods deben tolerar el taint para caer aquí: evita mezclar cargas generales.
+      taints:
+        - key: carga
+          value: computo
+          effect: NoSchedule
+      requirements:
+        - key: karpenter.sh/capacity-type
+          operator: In
+          values: ["on-demand"]
+        - key: kubernetes.io/arch
+          operator: In
+          values: ["amd64"]
+        - key: karpenter.k8s.aws/instance-category
+          operator: In
+          values: ["c"]
+        - key: karpenter.k8s.aws/instance-generation
+          operator: Gt
+          values: ["4"]
+      expireAfter: 720h
+  disruption:
+    consolidationPolicy: WhenEmpty
+    consolidateAfter: 5m
+  limits:
+    cpu: "64"

@@ -1,0 +1,46 @@
+# Valores del chart ingress-nginx (https://kubernetes.github.io/ingress-nginx) para el entorno dev.
+# El Service tipo LoadBalancer crea un NLB mediante el AWS Load Balancer Controller.
+controller:
+  # Con el HPA activo el chart omite replicas y el autoscaler controla el numero.
+  replicaCount: 2
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 6
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 80
+  # PodDisruptionBudget: siempre queda al menos una replica durante drenajes de nodos
+  # (consolidacion de Karpenter, actualizaciones del clúster).
+  minAvailable: 1
+  ingressClassResource:
+    name: nginx
+    default: true
+  service:
+    type: LoadBalancer
+    # Con Local el trafico solo llega a nodos que tienen un pod del controlador
+    # y se conserva la IP de origen del cliente.
+    externalTrafficPolicy: Local
+    annotations:
+      service.beta.kubernetes.io/aws-load-balancer-type: external
+      # target-type ip registra directamente las IP de los pods en el grupo de destino.
+      service.beta.kubernetes.io/aws-load-balancer-nlb-target-type: ip
+      service.beta.kubernetes.io/aws-load-balancer-scheme: internet-facing
+      service.beta.kubernetes.io/aws-load-balancer-cross-zone-load-balancing-enabled: "true"
+      service.beta.kubernetes.io/aws-load-balancer-healthcheck-protocol: http
+      service.beta.kubernetes.io/aws-load-balancer-healthcheck-path: /healthz
+      service.beta.kubernetes.io/aws-load-balancer-healthcheck-port: "10254"
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      memory: 256Mi
+  # Reparte las replicas entre zonas de disponibilidad.
+  topologySpreadConstraints:
+    - maxSkew: 1
+      topologyKey: topology.kubernetes.io/zone
+      whenUnsatisfiable: ScheduleAnyway
+      labelSelector:
+        matchLabels:
+          app.kubernetes.io/name: ingress-nginx
+          app.kubernetes.io/component: controller
