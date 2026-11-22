@@ -21,3 +21,15 @@ Requisito: el AWS Load Balancer Controller debe estar instalado, porque la anota
 - `externalTrafficPolicy: Local`: conserva la IP de origen y evita un salto extra entre nodos.
 - Balanceo entre zonas habilitado y réplicas repartidas por zona.
 - Health check HTTP contra `/healthz` en el puerto 10254.
+
+## Autoescalado y disponibilidad
+
+- HorizontalPodAutoscaler del controlador: entre 2 y 6 réplicas, con objetivo de 70 % de CPU y 80 % de memoria sobre lo solicitado en `resources.requests`. Requiere metrics-server en el clúster.
+- PodDisruptionBudget con `minAvailable: 1`: Karpenter y los drenajes de nodos nunca dejan el controlador sin réplicas.
+- El mínimo de 2 réplicas, junto con la restricción de topología por zona, evita que un solo nodo sea punto único de falla.
+
+Verificación:
+
+```bash
+kubectl -n ingress-nginx get hpa,pdb
+```

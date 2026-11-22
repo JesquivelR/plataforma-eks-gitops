@@ -1,7 +1,17 @@
 # Valores del chart ingress-nginx (https://kubernetes.github.io/ingress-nginx) para el entorno dev.
 # El Service tipo LoadBalancer crea un NLB mediante el AWS Load Balancer Controller.
 controller:
+  # Con el HPA activo el chart omite replicas y el autoscaler controla el numero.
   replicaCount: 2
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 6
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 80
+  # PodDisruptionBudget: siempre queda al menos una replica durante drenajes de nodos
+  # (consolidacion de Karpenter, actualizaciones del clúster).
+  minAvailable: 1
   ingressClassResource:
     name: nginx
     default: true
