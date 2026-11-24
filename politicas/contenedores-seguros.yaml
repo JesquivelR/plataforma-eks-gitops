@@ -1,0 +1,54 @@
+# Política básica para el CLI de Kyverno: se evalúa en el CI contra k8s/app-ejemplo.
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: contenedores-seguros
+spec:
+  validationFailureAction: Enforce
+  background: true
+  rules:
+    - name: sin-escalada-de-privilegios
+      match:
+        any:
+          - resources:
+              kinds:
+                - Deployment
+      validate:
+        message: "Cada contenedor debe definir allowPrivilegeEscalation: false."
+        pattern:
+          spec:
+            template:
+              spec:
+                containers:
+                  - securityContext:
+                      allowPrivilegeEscalation: false
+    - name: ejecutar-como-no-root
+      match:
+        any:
+          - resources:
+              kinds:
+                - Deployment
+      validate:
+        message: "El pod debe ejecutarse con runAsNonRoot: true."
+        pattern:
+          spec:
+            template:
+              spec:
+                securityContext:
+                  runAsNonRoot: true
+    - name: limites-de-memoria
+      match:
+        any:
+          - resources:
+              kinds:
+                - Deployment
+      validate:
+        message: "Cada contenedor debe declarar un límite de memoria."
+        pattern:
+          spec:
+            template:
+              spec:
+                containers:
+                  - resources:
+                      limits:
+                        memory: "?*"

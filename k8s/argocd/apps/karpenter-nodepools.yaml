@@ -1,0 +1,24 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: karpenter-nodepools
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+spec:
+  project: default
+  # El chart de Karpenter se instala con Terraform/Helm antes de Argo CD; aquí solo se
+  # sincronizan la plantilla de nodos y los NodePools (values.yaml y los README no se aplican).
+  source:
+    repoURL: https://github.com/JesquivelR/plataforma-eks-gitops.git
+    targetRevision: main
+    path: k8s/karpenter
+    directory:
+      include: "{ec2nodeclass,nodepool-*}.yaml"
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: kube-system
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true

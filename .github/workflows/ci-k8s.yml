@@ -5,6 +5,7 @@ on:
     paths:
       - "k8s/**"
       - ".yamllint.yml"
+      - "politicas/**"
       - ".github/workflows/ci-k8s.yml"
   push:
     branches:
@@ -12,6 +13,7 @@ on:
     paths:
       - "k8s/**"
       - ".yamllint.yml"
+      - "politicas/**"
       - ".github/workflows/ci-k8s.yml"
 
 permissions:
@@ -29,3 +31,68 @@ jobs:
 
       - name: Revisar los manifiestos y los values
         run: yamllint --strict -c .yamllint.yml k8s
+
+  esquemas:
+    name: kubeconform y helm lint
+    runs-on: ubuntu-latest
+    env:
+      KUBECONFORM_VERSION: v0.6.7
+      KUBECONFORM_SHA256: 95f14e87aa28c09d5941f11bd024c1d02fdc0303ccaa23f61cef67bc92619d73
+      CRD_SCHEMAS: "https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json"
+    steps:
+      - name: Descargar el repositorio
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Instalar kubeconform con checksum verificado
+        run: |
+          curl -sSLo kubeconform.tgz \
+            "https://github.com/yannh/kubeconform/releases/download/${KUBECONFORM_VERSION}/kubeconform-linux-amd64.tar.gz"
+          echo "${KUBECONFORM_SHA256}  kubeconform.tgz" | sha256sum -c -
+          tar xzf kubeconform.tgz kubeconform
+          sudo mv kubeconform /usr/local/bin/
+
+      - name: Validar los manifiestos contra sus esquemas
+        # Los CRDs (Argo CD, Karpenter, External Secrets) se validan con el catálogo público de esquemas.
+        run: |
+          kubeconform -strict -summary \
+            -schema-location default -schema-location "${CRD_SCHEMAS}" \
+            k8s/app-ejemplo k8s/argocd/apps k8s/argocd/bootstrap \
+            k8s/external-secrets/clustersecretstore.yaml \
+            k8s/karpenter/ec2nodeclass.yaml k8s/karpenter/nodepool-*.yaml
+
+      - name: Lint y render de los charts con sus values
+        # Las versiones coinciden con las de las Applications de Argo CD.
+        run: |
+          helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
+          helm repo add external-secrets https://charts.external-secrets.io
+          helm repo update
+          # helm lint solo acepta charts locales, así que se descarga primero.
+          helm pull ingress-nginx/ingress-nginx --version 4.11.3 --untar --untardir "${RUNNER_TEMP}/charts"
+          helm lint "${RUNNER_TEMP}/charts/ingress-nginx" -f k8s/ingress-nginx/values.yaml
+          helm template ingress-nginx ingress-nginx/ingress-nginx --version 4.11.3 \
+            -f k8s/ingress-nginx/values.yaml --namespace ingress-nginx \
+            | kubeconform -strict -summary -ignore-missing-schemas -schema-location default
+          helm template external-secrets external-secrets/external-secrets --version 0.10.7 \
+            --namespace external-secrets --set installCRDs=false \
+            | kubeconform -strict -summary -ignore-missing-schemas -schema-location default
+
+  politicas:
+    name: Kyverno CLI
+    runs-on: ubuntu-latest
+    env:
+      KYVERNO_VERSION: v1.13.4
+      KYVERNO_SHA256: abd318dbb971ab6de2bbe3b7226f4a03230d5c9c651df8a29b6b5e085a55aeeb
+    steps:
+      - name: Descargar el repositorio
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Instalar el CLI de Kyverno con checksum verificado
+        run: |
+          curl -sSLo kyverno.tgz \
+            "https://github.com/kyverno/kyverno/releases/download/${KYVERNO_VERSION}/kyverno-cli_${KYVERNO_VERSION}_linux_x86_64.tar.gz"
+          echo "${KYVERNO_SHA256}  kyverno.tgz" | sha256sum -c -
+          tar xzf kyverno.tgz kyverno
+          sudo mv kyverno /usr/local/bin/
+
+      - name: Evaluar la política básica contra la aplicación de ejemplo
+        run: kyverno apply politicas/contenedores-seguros.yaml --resource k8s/app-ejemplo/deployment.yaml

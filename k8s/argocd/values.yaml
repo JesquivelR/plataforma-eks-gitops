@@ -1,0 +1,22 @@
+# Valores del chart argo-cd (https://argoproj.github.io/argo-helm) para el entorno dev.
+global:
+  domain: argocd.dev.example.com
+configs:
+  params:
+    # TLS lo termina el ingress; el servidor habla HTTP dentro del clúster.
+    server.insecure: true
+  cm:
+    # Un solo repositorio de plataforma; las aplicaciones de negocio van por su propio pipeline.
+    application.resourceTrackingMethod: annotation
+server:
+  ingress:
+    enabled: true
+    ingressClassName: nginx
+controller:
+  replicas: 1
+repoServer:
+  replicas: 2
+applicationSet:
+  enabled: false
+dex:
+  enabled: false

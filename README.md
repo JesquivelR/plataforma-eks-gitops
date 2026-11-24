@@ -1,8 +1,8 @@
 # Plataforma EKS con GitOps
 
-Plataforma en Amazon EKS con Terraform, Karpenter, NGINX Ingress, External Secrets Operator y Argo CD. Este repositorio se construye por partes; esta primera parte cubre la red, el clúster y los roles de identidad que necesitarán los componentes siguientes.
+Plataforma en Amazon EKS con Terraform, Karpenter, NGINX Ingress, External Secrets Operator y Argo CD. Terraform crea la red, el clúster y los roles de identidad; Argo CD sincroniza los componentes de plataforma desde este repositorio.
 
-## Alcance de la parte 1
+## Alcance
 
 - Estructura de Terraform con módulos reutilizables y un entorno `dev`.
 - VPC con subredes públicas y privadas en tres zonas de disponibilidad.
@@ -108,6 +108,30 @@ Estimación de referencia en us-east-1, con el entorno `dev` encendido todo el m
 
 El total ronda los 140 a 180 USD al mes con un par de nodos. Para un laboratorio conviene aplicar, probar y ejecutar `terraform destroy` al terminar: un día encendido cuesta alrededor de 5 USD.
 
+## Despliegue de plataforma y de aplicaciones
+
+Hay dos caminos de despliegue con responsabilidades separadas.
+
+| | Plataforma | Aplicaciones |
+|---|-----------|--------------|
+| Qué incluye | Red y clúster (Terraform), Karpenter, NGINX Ingress, External Secrets Operator y OTel Collector | Servicios de negocio que corren sobre la plataforma, como `k8s/app-ejemplo` |
+| Cómo se despliega | GitOps: Argo CD sincroniza `k8s/argocd/apps/` desde la rama `main` | Pipeline de CI/CD de cada aplicación |
+| Quién cambia el estado | Un merge a `main` en este repositorio; Argo CD aplica y corrige la deriva (`prune` y `selfHeal`) | El pipeline construye la imagen, la escanea y actualiza la versión desplegada |
+| Credenciales | Ninguna en el pipeline: Argo CD lee el repositorio y los secretos salen de Secrets Manager con External Secrets Operator | Solo permisos para publicar la imagen; los secretos no pasan por el pipeline |
+
+Cómo se reparte el trabajo:
+
+1. Terraform crea la red, el clúster y los roles IRSA. Se ejecuta a mano o desde un pipeline de infraestructura, nunca desde Argo CD.
+2. Se instala Argo CD una sola vez y se aplica `k8s/argocd/bootstrap/raiz.yaml`. Desde ahí, todo componente de plataforma se agrega como una `Application` en `k8s/argocd/apps/`.
+3. Cada aplicación tiene su propio repositorio y pipeline. El pipeline publica la imagen y propone el cambio de versión; la plantilla de ejemplo está en `k8s/app-ejemplo/`.
+4. Los secretos se declaran como `ExternalSecret` junto a la aplicación; el valor vive en Secrets Manager y el `ClusterSecretStore` lo lee con IRSA.
+
+Esta separación permite revisar los cambios de plataforma con un PR y que los equipos de aplicación publiquen sin tocar el clúster.
+
+## Validación de manifiestos
+
+El workflow `ci-k8s.yml` corre en cada cambio de `k8s/`: yamllint, kubeconform, `helm lint` y una política básica con Kyverno CLI.
+
 ## Siguientes partes
 
-La instalación de Karpenter, el ingress, Argo CD y External Secrets Operator se agregan en PRs posteriores sobre esta base.
+La versión local con kind, el script de arranque y la verificación de Argo CD en CI se agregan en un PR posterior.

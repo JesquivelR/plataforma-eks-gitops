@@ -38,6 +38,13 @@ spec:
             readOnlyRootFilesystem: true
             capabilities:
               drop: ["ALL"]
+          # El valor llega desde el Secret que crea External Secrets Operator.
+          env:
+            - name: API_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: app-demo-config
+                  key: API_TOKEN
           volumeMounts:
             - name: tmp
               mountPath: /tmp
