@@ -1,0 +1,19 @@
+# Overlay para kind: reutiliza los manifiestos de k8s/app-ejemplo sin copiarlos.
+# Cambios respecto a dev: una réplica, host local y un Secret generado en lugar del ExternalSecret,
+# porque el clúster local no tiene External Secrets Operator ni acceso a Secrets Manager.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../../../k8s/app-ejemplo
+patches:
+  - path: quitar-externalsecret.yaml
+  - path: ajustes-deployment.yaml
+  - path: host-ingress.yaml
+secretGenerator:
+  - name: app-demo-config
+    namespace: demo
+    literals:
+      - API_TOKEN=valor-local-de-prueba
+generatorOptions:
+  # El Deployment busca el Secret por su nombre exacto, sin sufijo de hash.
+  disableNameSuffixHash: true

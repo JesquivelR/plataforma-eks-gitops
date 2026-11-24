@@ -49,12 +49,17 @@ levantar() {
     --values "$DIR/valores-kind-argocd.yaml" \
     --wait --timeout 5m
 
+  # Aplicación de ejemplo: overlay de Kustomize sobre k8s/app-ejemplo.
+  kubectl apply -k "$DIR/kustomize/app-ejemplo"
+  kubectl -n demo rollout status deployment/app-demo --timeout=120s
+
   echo
   echo "Listo. Contraseña inicial de Argo CD (usuario admin):"
   kubectl -n argocd get secret argocd-initial-admin-secret \
     -o jsonpath='{.data.password}' | base64 -d
   echo
   echo "Interfaz: kubectl -n argocd port-forward svc/argocd-server 8080:80"
+  echo "Aplicación de ejemplo: curl http://demo.localtest.me"
 }
 
 borrar() {
