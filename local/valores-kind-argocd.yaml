@@ -1,0 +1,9 @@
+# Ajustes sobre k8s/argocd/values.yaml para kind.
+global:
+  domain: argocd.localtest.me
+server:
+  ingress:
+    enabled: true
+    ingressClassName: nginx
+repoServer:
+  replicas: 1
