@@ -1,0 +1,71 @@
+name: CI del entorno local
+
+on:
+  pull_request:
+    paths:
+      - "local/**"
+      - "k8s/app-ejemplo/**"
+      - "k8s/argocd/values.yaml"
+      - "k8s/ingress-nginx/values.yaml"
+      - ".github/workflows/ci-local.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "local/**"
+      - ".github/workflows/ci-local.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  kind:
+    name: Levantar kind y verificar la plataforma
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Descargar el repositorio
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Mostrar las versiones de las herramientas
+        # El runner de ubuntu-latest ya trae kind, kubectl y helm.
+        run: |
+          kind version
+          kubectl version --client
+          helm version --short
+
+      - name: Levantar el entorno local
+        run: ./local/levantar.sh levantar
+
+      - name: Verificar que los componentes quedaron listos
+        run: |
+          kubectl -n ingress-nginx rollout status deployment/ingress-nginx-controller --timeout=120s
+          kubectl -n argocd rollout status deployment/argocd-server --timeout=120s
+          kubectl -n argocd rollout status deployment/argocd-repo-server --timeout=120s
+          kubectl -n argocd rollout status deployment/argocd-applicationset-controller --timeout=120s
+          kubectl -n argocd rollout status statefulset/argocd-application-controller --timeout=120s
+          # Los CRDs de Argo CD permiten sincronizar aplicaciones en este clúster.
+          kubectl get crd applications.argoproj.io appprojects.argoproj.io
+          kubectl -n demo rollout status deployment/app-demo --timeout=120s
+
+      - name: Probar la aplicación de ejemplo a través del ingress
+        run: |
+          # --resolve evita depender del DNS de localtest.me en el runner.
+          for intento in $(seq 1 12); do
+            codigo=$(curl -s -o /dev/null -w '%{http_code}' --resolve demo.localtest.me:80:127.0.0.1 http://demo.localtest.me/ || true)
+            echo "intento ${intento}: HTTP ${codigo}"
+            [ "${codigo}" = "200" ] && exit 0
+            sleep 5
+          done
+          echo "La aplicación no respondió 200 por el ingress" >&2
+          exit 1
+
+      - name: Mostrar el estado del clúster si algo falló
+        if: failure()
+        run: |
+          kubectl get pods -A
+          kubectl get events -A --sort-by=.lastTimestamp | tail -40
+
+      - name: Borrar el clúster
+        if: always()
+        run: ./local/levantar.sh borrar
