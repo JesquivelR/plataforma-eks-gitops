@@ -1,0 +1,22 @@
+# Ajustes sobre k8s/ingress-nginx/values.yaml para kind.
+controller:
+  # Sin HPA ni PodDisruptionBudget: un solo nodo.
+  autoscaling:
+    enabled: false
+  replicaCount: 1
+  minAvailable: null
+  service:
+    type: NodePort
+    externalTrafficPolicy: Cluster
+    annotations: {}
+  hostPort:
+    enabled: true
+  nodeSelector:
+    ingress-ready: "true"
+  tolerations:
+    - key: node-role.kubernetes.io/control-plane
+      operator: Equal
+      effect: NoSchedule
+  topologySpreadConstraints: []
+  publishService:
+    enabled: false

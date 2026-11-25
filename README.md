@@ -132,6 +132,6 @@ Esta separación permite revisar los cambios de plataforma con un PR y que los e
 
 El workflow `ci-k8s.yml` corre en cada cambio de `k8s/`: yamllint, kubeconform, `helm lint` y una política básica con Kyverno CLI.
 
-## Siguientes partes
+## Entorno local
 
-La versión local con kind, el script de arranque y la verificación de Argo CD en CI se agregan en un PR posterior.
+La carpeta `local/` levanta la plataforma en un clúster kind con ingress, Argo CD y la aplicación de ejemplo, y `ci-local.yml` lo verifica en CI. Las instrucciones y la salida esperada están en [local/README.md](local/README.md).

@@ -1,0 +1,9 @@
+# Base reutilizable: la usan el overlay local de kind y, si se quiere, otros entornos.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - namespace.yaml
+  - deployment.yaml
+  - service.yaml
+  - ingress.yaml
+  - externalsecret.yaml

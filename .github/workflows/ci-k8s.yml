@@ -54,7 +54,7 @@ jobs:
       - name: Validar los manifiestos contra sus esquemas
         # Los CRDs (Argo CD, Karpenter, External Secrets) se validan con el catálogo público de esquemas.
         run: |
-          kubeconform -strict -summary \
+          kubeconform -strict -summary -ignore-filename-pattern 'kustomization\.yaml$' \
             -schema-location default -schema-location "${CRD_SCHEMAS}" \
             k8s/app-ejemplo k8s/argocd/apps k8s/argocd/bootstrap \
             k8s/external-secrets/clustersecretstore.yaml \
